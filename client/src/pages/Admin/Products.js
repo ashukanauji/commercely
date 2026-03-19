@@ -1,73 +1,51 @@
-import React, { useState, useEffect } from "react";
-import AdminMenu from "../../components/Layout/AdminMenu";
-import Layout from "../../components/Layout/Layout";
-import axios from "axios";
-import toast from "react-hot-toast";
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
+import Layout from "../../components/Layout/Layout";
+import AdminMenu from "../../components/Layout/AdminMenu";
+import { formatCurrency } from "../../utils/format";
+import api from "../../utils/api";
 
 const Products = () => {
   const [products, setProducts] = useState([]);
 
-  // Get all products
-  const getAllProducts = async () => {
-    try {
-      const url = `${process.env.REACT_APP_API}/api/v1/product/get-product`;
-      console.log("Fetching products from:", url);
-
-      const { data } = await axios.get(url);
-
-      console.log("Products API response:", data);
-
-      if (data?.success) {
-        setProducts(data.products);
-      } else {
-        toast.error(data.message || "Failed to load products");
-      }
-    } catch (error) {
-      console.error("Error fetching products:", {
-        message: error.message,
-        response: error.response ? error.response.data : null,
-      });
-      toast.error("Something went wrong while fetching products");
-    }
-  };
-
-  // Lifecycle - fetch on load
   useEffect(() => {
-    getAllProducts();
+    const fetchProducts = async () => {
+      const { data } = await api.get("/api/v1/product/get-product");
+      setProducts(data.products);
+    };
+
+    fetchProducts();
   }, []);
 
   return (
-    <Layout title="Admin - All Products">
-      <div className="row">
-        <div className="col-md-3">
-          <AdminMenu />
-        </div>
-        <div className="col-md-9">
-          <h1 className="text-center">All Products List</h1>
-          <div className="d-flex flex-wrap">
-            {products?.map((p) => (
-              <Link
-                key={p._id}
-                to={`/dashboard/admin/product/${p.slug}`}
-                className="product-link"
-              >
-                <div className="card m-2" style={{ width: "18rem" }}>
-                  <img
-                    src={`${process.env.REACT_APP_API}/api/v1/product/product-photo/${p._id}`}
-                    className="card-img-top"
-                    alt={p.name}
-                  />
-                  <div className="card-body">
-                    <h5 className="card-title">{p.name}</h5>
-                    <p className="card-text">{p.description}</p>
+    <Layout title="Manage products | Commercely">
+      <section className="container section-block dashboard-layout">
+        <AdminMenu />
+        <div className="dashboard-content">
+          <div className="section-heading">
+            <div>
+              <span className="eyebrow">Catalog management</span>
+              <h1>Products</h1>
+            </div>
+            <Link to="/dashboard/admin/create-product" className="primary-btn">Add product</Link>
+          </div>
+          <div className="product-grid">
+            {products.map((product) => (
+              <Link key={product._id} to={`/dashboard/admin/product/${product.slug}`} className="product-card admin-card-link">
+                <img src={`${process.env.REACT_APP_API}/api/v1/product/product-photo/${product._id}`} alt={product.name} className="product-image" />
+                <div className="product-card-body">
+                  <div className="product-card-top">
+                    <span className="pill">{product.category?.name}</span>
+                    <strong>{formatCurrency(product.price)}</strong>
                   </div>
+                  <h3>{product.name}</h3>
+                  <p>{product.description.slice(0, 80)}...</p>
                 </div>
               </Link>
             ))}
           </div>
         </div>
-      </div>
+      </section>
     </Layout>
   );
 };

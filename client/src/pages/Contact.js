@@ -1,34 +1,22 @@
-import React from "react";
-import Layout from "./../components/Layout/Layout";
 import { BiMailSend, BiPhoneCall, BiSupport } from "react-icons/bi";
+import Layout from "../components/Layout/Layout";
+
 const Contact = () => {
   return (
-    <Layout title={"Contact Us - Commercelly"}>
-      <div className="row contactus ">
-        <div className="col-md-6 ">
-          <img
-            src="/images/contactus.jpeg"
-            alt="contactus"
-            style={{ width: "100%" }}
-          />
+    <Layout title="Contact Commercely">
+      <section className="container section-block split-layout">
+        <img src="/images/contactus.jpeg" alt="Support team" className="cover-image" />
+        <div className="card-panel">
+          <span className="eyebrow">Need help?</span>
+          <h1>We are here for support</h1>
+          <p>Reach out for product questions, order help, or admin support.</p>
+          <div className="contact-stack">
+            <p><BiMailSend /> support@commercely.com</p>
+            <p><BiPhoneCall /> +1 (800) 555-0147</p>
+            <p><BiSupport /> 24/7 customer care</p>
+          </div>
         </div>
-        <div className="col-md-4">
-          <h1 className="bg-dark p-2 text-white text-center">CONTACT US</h1>
-          <p className="text-justify mt-2">
-            any query and info about prodduct feel free to call anytime we 24X7
-            vaialible
-          </p>
-          <p className="mt-3">
-            <BiMailSend /> : www.help@commercelly.com
-          </p>
-          <p className="mt-3">
-            <BiPhoneCall /> : 012-3456789
-          </p>
-          <p className="mt-3">
-            <BiSupport /> : 1800-0000-0000 (toll free)
-          </p>
-        </div>
-      </div>
+      </section>
     </Layout>
   );
 };

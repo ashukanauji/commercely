@@ -1,36 +1,31 @@
-import React from "react";
-import Header from "./Header";
-import Footer from "./Footer";
 import { Helmet } from "react-helmet";
 import { Toaster } from "react-hot-toast";
+import Footer from "./Footer";
+import Header from "./Header";
 
 const Layout = ({ children, title, description, keywords, author }) => {
   return (
-    <div>
+    <div className="app-shell">
       <Helmet>
         <meta charSet="utf-8" />
-        <title>My Title</title>
-
+        <title>{title}</title>
         <meta name="description" content={description} />
         <meta name="keywords" content={keywords} />
         <meta name="author" content={author} />
-        <title>{title}</title>
       </Helmet>
-
+      <Toaster position="top-right" />
       <Header />
-      <main style={{ minHeight: "100vh" }}>
-        <Toaster />
-        {children}
-      </main>
+      <main className="page-shell">{children}</main>
       <Footer />
     </div>
   );
 };
 
 Layout.defaultProps = {
-  title: "Commercelly - Shop Now",
-  description: "Welcome to Commercelly, your go-to e-commerce platform.",
-  keywords: "e-commerce, online shopping, Commercelly",
+  title: "Commercely | Modern ecommerce storefront",
+  description: "Discover curated fashion, electronics, lifestyle, and home essentials.",
+  keywords: "ecommerce, shopping, fashion, home, electronics",
+  author: "OpenAI",
 };
 
 export default Layout;

@@ -1,38 +1,54 @@
 import JWT from "jsonwebtoken";
 import userModel from "../models/userModel.js";
 
-//Protected Routes token base
+const extractToken = (authorizationHeader = "") => {
+  if (!authorizationHeader) return null;
+  if (authorizationHeader.startsWith("Bearer ")) {
+    return authorizationHeader.slice(7);
+  }
+  return authorizationHeader;
+};
+
 export const requireSignIn = async (req, res, next) => {
   try {
-    const decode = JWT.verify(
-      req.headers.authorization,
-      process.env.JWT_SECRET
-    );
-    req.user = decode;
+    const token = extractToken(req.headers.authorization);
+
+    if (!token) {
+      return res.status(401).send({
+        success: false,
+        message: "Authorization token is required",
+      });
+    }
+
+    const decoded = JWT.verify(token, process.env.JWT_SECRET);
+    req.user = decoded;
     next();
   } catch (error) {
-    console.log(error);
+    return res.status(401).send({
+      success: false,
+      message: "Invalid or expired token",
+      error: error.message,
+    });
   }
 };
 
-//admin acceess
 export const isAdmin = async (req, res, next) => {
   try {
-    const user = await userModel.findById(req.user._id);
-    if (user.role !== 1) {
+    const user = await userModel.findById(req.user._id).select("role");
+
+    if (!user || user.role !== 1) {
       return res.status(403).send({
         success: false,
-        message: "UnAuthorized Access",
+        message: "Unauthorized access",
       });
-    } else {
-      next();
     }
+
+    next();
   } catch (error) {
-    console.log(error);
-    res.status(401).send({
+    return res.status(500).send({
       success: false,
-      error,
-      message: "Error in admin middelware",
+      message: "Error validating admin access",
+      error: error.message,
     });
   }
 };

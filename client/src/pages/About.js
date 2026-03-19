@@ -1,26 +1,19 @@
-import React from "react";
-import Layout from "./../components/Layout/Layout";
+import Layout from "../components/Layout/Layout";
 
 const About = () => {
   return (
-    <Layout title={"About Us - Commercelly"}>
-      <div className="row contactus ">
-        <div className="col-md-6 ">
-          <img
-            src="/images/about.jpeg"
-            alt="contactus"
-            style={{ width: "100%" }}
-          />
-        </div>
-        <div className="col-md-4">
-          <p className="text-justify mt-2">
-            Welcome to Commercelly, your number one source for all things
-            related to e-commerce. We're dedicated to giving you the very best
-            of online shopping experience, with a focus on dependability,
-            customer service, and uniqueness.
+    <Layout title="About Commercely">
+      <section className="container section-block split-layout">
+        <div>
+          <span className="eyebrow">About us</span>
+          <h1>Built to showcase a complete full-stack ecommerce experience.</h1>
+          <p>
+            Commercely combines a React storefront, Express APIs, and MongoDB-backed
+            product, user, and order management into a polished shopping workflow.
           </p>
         </div>
-      </div>
+        <img src="/images/about.jpeg" alt="About Commercely" className="cover-image" />
+      </section>
     </Layout>
   );
 };

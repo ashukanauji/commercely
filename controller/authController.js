@@ -1,12 +1,27 @@
-import userModel from "../models/userModel.js";
-import { hashPassword, comparePassword } from "./../helpers/authHelper.js";
 import JWT from "jsonwebtoken";
+import userModel from "../models/userModel.js";
+import orderModel from "../models/orderModel.js";
+import { comparePassword, hashPassword } from "../helpers/authHelper.js";
 
-//Register Controller || Post Method
+const sanitizeUser = (user) => ({
+  _id: user._id,
+  name: user.name,
+  email: user.email,
+  phone: user.phone,
+  address: user.address,
+  role: user.role,
+  createdAt: user.createdAt,
+});
+
+const createToken = (user) =>
+  JWT.sign({ _id: user._id, role: user.role }, process.env.JWT_SECRET, {
+    expiresIn: "7d",
+  });
+
 export const registerController = async (req, res) => {
   try {
     const { name, email, password, phone, address, answer } = req.body;
-    //Validate request data
+
     if (!name || !email || !password || !phone || !address || !answer) {
       return res.status(400).send({
         success: false,
@@ -14,37 +29,41 @@ export const registerController = async (req, res) => {
       });
     }
 
-    //check if user already exists
-    const existingUser = await userModel.findOne({ email });
+    if (password.length < 6) {
+      return res.status(400).send({
+        success: false,
+        message: "Password must be at least 6 characters long",
+      });
+    }
 
-    //if user exists, throw error
+    const normalizedEmail = email.toLowerCase().trim();
+    const normalizedAnswer = answer.toLowerCase().trim();
+
+    const existingUser = await userModel.findOne({ email: normalizedEmail });
     if (existingUser) {
-      return res.status(200).send({
+      return res.status(409).send({
         success: false,
         message: "User already exists, please login",
       });
     }
 
-    //register user
     const hashedPassword = await hashPassword(password);
-    //save user to database
-    const user = await userModel({
+    const user = await userModel.create({
       name,
-      email,
+      email: normalizedEmail,
       phone,
       address,
       password: hashedPassword,
-      answer,
-    }).save();
+      answer: normalizedAnswer,
+    });
 
-    res.status(201).send({
+    return res.status(201).send({
       success: true,
       message: "User registered successfully",
-      user,
+      user: sanitizeUser(user),
     });
   } catch (error) {
-    console.error("Error in registerController:", error);
-    res.status(500).send({
+    return res.status(500).send({
       success: false,
       message: "Error in registration",
       error: error.message,
@@ -52,22 +71,18 @@ export const registerController = async (req, res) => {
   }
 };
 
-// POST Method || LOGIN CONTROLLER
-
 export const loginController = async (req, res) => {
   try {
     const { email, password } = req.body;
 
-    // Validate request data
     if (!email || !password) {
-      return res.status(404).send({
+      return res.status(400).send({
         success: false,
         message: "Email and password are required",
       });
     }
 
-    // Check if user exists
-    const user = await userModel.findOne({ email });
+    const user = await userModel.findOne({ email: email.toLowerCase().trim() });
     if (!user) {
       return res.status(404).send({
         success: false,
@@ -75,7 +90,6 @@ export const loginController = async (req, res) => {
       });
     }
 
-    // Validate password
     const isMatch = await comparePassword(password, user.password);
     if (!isMatch) {
       return res.status(401).send({
@@ -84,26 +98,16 @@ export const loginController = async (req, res) => {
       });
     }
 
-    // Generate JWT token
-    const token = await JWT.sign({ _id: user._id }, process.env.JWT_SECRET, {
-      expiresIn: "7d",
-    });
+    const token = createToken(user);
 
-    res.status(200).send({
+    return res.status(200).send({
       success: true,
       message: "Login successful",
-      user: {
-        name: user.name,
-        email: user.email,
-        phone: user.phone,
-        address: user.address,
-        role: user.role,
-      },
+      user: sanitizeUser(user),
       token,
     });
   } catch (error) {
-    console.error("Error in loginController:", error);
-    res.status(500).send({
+    return res.status(500).send({
       success: false,
       message: "Error in login",
       error: error.message,
@@ -111,43 +115,45 @@ export const loginController = async (req, res) => {
   }
 };
 
-// Forgot Password Controller
 export const forgotPasswordController = async (req, res) => {
   try {
     const { email, answer, newPassword } = req.body;
-    // Validate request data
-    if (!email) {
-      res.status(400).send({ message: "Email is required" });
+
+    if (!email || !answer || !newPassword) {
+      return res.status(400).send({
+        success: false,
+        message: "Email, answer, and new password are required",
+      });
     }
-    if (!answer) {
-      res.status(400).send({ message: "Answer is required" });
+
+    if (newPassword.length < 6) {
+      return res.status(400).send({
+        success: false,
+        message: "New password must be at least 6 characters long",
+      });
     }
-    if (!newPassword) {
-      res.status(400).send({ message: "New Password is required" });
-    }
-    // Check if user exists
-    const user = await userModel.findOne({ email, answer });
+
+    const user = await userModel.findOne({
+      email: email.toLowerCase().trim(),
+      answer: answer.toLowerCase().trim(),
+    });
+
     if (!user) {
       return res.status(404).send({
         success: false,
         message: "User not found or answer is incorrect",
       });
     }
-    // Hash new password
-    // const hashed = await hashPassword(newPassword);
-    // await userModel.findById(user._id, { password: hashed });
 
-    // Hash and update password
-    const hashed = await hashPassword(newPassword);
-    user.password = hashed;
+    user.password = await hashPassword(newPassword);
     await user.save();
-    res.status(200).send({
+
+    return res.status(200).send({
       success: true,
       message: "Password reset successfully",
     });
   } catch (error) {
-    console.error("Error in forgotPasswordController:", error);
-    res.status(500).send({
+    return res.status(500).send({
       success: false,
       message: "Error in forgot password",
       error: error.message,
@@ -155,8 +161,141 @@ export const forgotPasswordController = async (req, res) => {
   }
 };
 
-// Test Controller
-export const testController = (req, res) => {
-  console.log("Protected route accessed");
+export const getProfileController = async (req, res) => {
+  try {
+    const user = await userModel.findById(req.user._id).select("-password -answer");
+    if (!user) {
+      return res.status(404).send({
+        success: false,
+        message: "User not found",
+      });
+    }
+
+    return res.status(200).send({
+      success: true,
+      user,
+    });
+  } catch (error) {
+    return res.status(500).send({
+      success: false,
+      message: "Failed to fetch profile",
+      error: error.message,
+    });
+  }
+};
+
+export const updateProfileController = async (req, res) => {
+  try {
+    const { name, phone, address, password } = req.body;
+    const user = await userModel.findById(req.user._id);
+
+    if (!user) {
+      return res.status(404).send({
+        success: false,
+        message: "User not found",
+      });
+    }
+
+    if (password && password.length < 6) {
+      return res.status(400).send({
+        success: false,
+        message: "Password must be at least 6 characters long",
+      });
+    }
+
+    user.name = name || user.name;
+    user.phone = phone || user.phone;
+    user.address = address || user.address;
+    if (password) {
+      user.password = await hashPassword(password);
+    }
+
+    await user.save();
+
+    return res.status(200).send({
+      success: true,
+      message: "Profile updated successfully",
+      user: sanitizeUser(user),
+    });
+  } catch (error) {
+    return res.status(500).send({
+      success: false,
+      message: "Error updating profile",
+      error: error.message,
+    });
+  }
+};
+
+export const getUsersController = async (_req, res) => {
+  try {
+    const [users, totalOrders] = await Promise.all([
+      userModel.find({}).select("-password -answer").sort({ createdAt: -1 }),
+      orderModel.aggregate([
+        { $group: { _id: "$user", orders: { $sum: 1 }, spent: { $sum: "$total" } } },
+      ]),
+    ]);
+
+    const orderMap = new Map(totalOrders.map((entry) => [String(entry._id), entry]));
+    const enrichedUsers = users.map((user) => ({
+      ...user.toObject(),
+      metrics: {
+        orders: orderMap.get(String(user._id))?.orders || 0,
+        spent: orderMap.get(String(user._id))?.spent || 0,
+      },
+    }));
+
+    return res.status(200).send({
+      success: true,
+      users: enrichedUsers,
+    });
+  } catch (error) {
+    return res.status(500).send({
+      success: false,
+      message: "Failed to fetch users",
+      error: error.message,
+    });
+  }
+};
+
+export const updateUserRoleController = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { role } = req.body;
+
+    if (![0, 1].includes(role)) {
+      return res.status(400).send({
+        success: false,
+        message: "Role must be 0 or 1",
+      });
+    }
+
+    const user = await userModel.findByIdAndUpdate(
+      id,
+      { role },
+      { new: true }
+    ).select("-password -answer");
+
+    if (!user) {
+      return res.status(404).send({
+        success: false,
+        message: "User not found",
+      });
+    }
+
+    return res.status(200).send({
+      success: true,
+      message: "User role updated successfully",
+      user,
+    });
+  } catch (error) {
+    return res.status(500).send({
+      success: false,
+      message: "Failed to update user role",
+      error: error.message,
+    });
+  }
+};
+
+export const testController = (_req, res) => {
   res.send("Protected route accessed successfully");
 };

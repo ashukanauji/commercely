@@ -1,42 +1,18 @@
-import { useState, useEffect } from "react";
-import { useAuth } from "../../context/auth";
-import { Outlet } from "react-router-dom";
-import axios from "axios";
+import { Navigate, Outlet, useLocation } from "react-router-dom";
 import Spinner from "../Spinner";
+import { useAuth } from "../../context/auth";
 
 export default function PrivateRoute() {
-  const [ok, setOk] = useState(false);
-  const [auth] = useAuth();
+  const { auth, ready } = useAuth();
+  const location = useLocation();
 
-  useEffect(() => {
-    const authCheck = async () => {
-      try {
-        const res = await axios.get(
-          `${process.env.REACT_APP_API}/api/v1/auth/user-auth`,
-          {
-            headers: {
-              Authorization: auth?.token, // send token here
-            },
-          }
-        );
+  if (!ready) {
+    return <Spinner message="Checking your session..." path="/login" />;
+  }
 
-        if (res.data.ok) {
-          setOk(true);
-        } else {
-          setOk(false);
-        }
-      } catch (error) {
-        console.error("User auth check failed:", error);
-        setOk(false);
-      }
-    };
+  if (!auth?.token) {
+    return <Navigate to="/login" state={location.pathname} replace />;
+  }
 
-    if (auth?.token) {
-      authCheck();
-    } else {
-      setOk(false);
-    }
-  }, [auth?.token]);
-
-  return ok ? <Outlet /> : <Spinner path="/" />;
+  return <Outlet />;
 }

@@ -1,0 +1,122 @@
+/* ========================================= */
+/* ========= Modern Auth Form ========= */
+
+.form-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+  padding: 20px;
+  font-family: 'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.form-container form {
+  background-color: #ffffff;
+  padding: 40px;
+  border-radius: 12px;
+  box-shadow: 0px 8px 30px rgba(0, 0, 0, 0.08);
+  width: 100%;
+  max-width: 400px;
+  animation: fadeIn 0.5s ease-in-out;
+}
+
+.form-container form .title {
+  text-align: center;
+  margin-bottom: 25px;
+  font-weight: 600;
+  font-size: 24px;
+  color: #2d3436;
+  font-family: 'Inter', sans-serif;
+}
+
+/* Input Fields */
+.form-container form input {
+  width: 100%;
+  padding: 12px 14px;
+  margin-bottom: 18px;
+  border: 1px solid #dcdde1;
+  border-radius: 8px;
+  font-size: 14px;
+  outline: none;
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.form-container form input:focus {
+  border-color: #4a90e2;
+  box-shadow: 0px 0px 6px rgba(74, 144, 226, 0.4);
+}
+
+/* Buttons */
+.form-container form button {
+  border: none;
+  border-radius: 8px;
+  background-color: #4a90e2;
+  color: white;
+  width: 100%;
+  padding: 12px;
+  font-size: 15px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.3s ease, transform 0.1s ease-in-out;
+}
+
+.form-container form button:hover {
+  background-color: #357ABD;
+  transform: translateY(-1px);
+}
+
+/* Form button base styles */
+.form-container form button {
+  width: 100%;
+  padding: 10px;
+  font-size: 16px;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: background 0.3s ease, transform 0.1s ease;
+}
+
+/* Login button - primary */
+.form-container form button.login-btn {
+  background-color: #007bff;
+  color: white;
+}
+
+.form-container form button.login-btn:hover {
+  background-color: #0056b3;
+  transform: translateY(-1px);
+}
+
+/* Forgot Password button - secondary */
+.form-container form button.forgot-btn {
+  background-color: transparent;
+  color: #007bff;
+  border: 1px solid #007bff;
+}
+
+.form-container form button.forgot-btn:hover {
+  background-color: #007bff;
+  color: white;
+  transform: translateY(-1px);
+}
+
+/* Spacing between buttons */
+.form-container form button + button {
+  margin-top: 12px;
+}
+
+
+/* Subtle fade-in animation */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

@@ -1,43 +1,22 @@
-import { useState, useEffect } from "react";
-import { useAuth } from "../../context/auth";
-import { Outlet } from "react-router-dom";
-import axios from "axios";
+import { Navigate, Outlet, useLocation } from "react-router-dom";
 import Spinner from "../Spinner";
+import { useAuth } from "../../context/auth";
 
 export default function AdminRoute() {
-  const [ok, setOk] = useState(false);
-  const [auth, setAuth] = useAuth();
+  const { auth, ready } = useAuth();
+  const location = useLocation();
 
-  useEffect(() => {
-    const authCheck = async () => {
-      try {
-        const res = await axios.get(
-          `${process.env.REACT_APP_API}/api/v1/auth/admin-auth`,
-          {
-            headers: {
-              Authorization: auth?.token, // send the token here
-            },
-          }
-        );
+  if (!ready) {
+    return <Spinner message="Checking admin access..." path="/login" />;
+  }
 
-        if (res.data.ok) {
-          setOk(true);
-        } else {
-          setOk(false);
-        }
-      } catch (error) {
-        console.error("Admin auth check failed:", error);
-        setOk(false);
-      }
-    };
+  if (!auth?.token) {
+    return <Navigate to="/login" state={location.pathname} replace />;
+  }
 
-    if (auth?.token) {
-      authCheck();
-    } else {
-      setOk(false);
-    }
-  }, [auth?.token]);
+  if (auth?.user?.role !== 1) {
+    return <Navigate to="/dashboard/user" replace />;
+  }
 
-  // If admin access is confirmed, render the route; else redirect using Spinner to home "/"
-  return ok ? <Outlet /> : <Spinner path="/" />;
+  return <Outlet />;
 }

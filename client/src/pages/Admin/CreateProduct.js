@@ -1,194 +1,87 @@
-import React, { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
+import toast from "react-hot-toast";
+import { useNavigate } from "react-router-dom";
 import Layout from "../../components/Layout/Layout";
 import AdminMenu from "../../components/Layout/AdminMenu";
-import toast from "react-hot-toast";
-import axios from "axios";
-import { Select } from "antd";
-import { useNavigate } from "react-router-dom";
-import { useAuth } from "../../context/auth"; // import auth context
+import api from "../../utils/api";
 
-const { Option } = Select;
+const initialState = {
+  name: "",
+  description: "",
+  price: "",
+  category: "",
+  quantity: "",
+  shipping: "true",
+  featured: "true",
+  photo: null,
+};
 
 const CreateProduct = () => {
   const navigate = useNavigate();
-  const [auth] = useAuth(); // get token from context
-
   const [categories, setCategories] = useState([]);
-  const [name, setName] = useState("");
-  const [description, setDescription] = useState("");
-  const [price, setPrice] = useState("");
-  const [category, setCategory] = useState("");
-  const [quantity, setQuantity] = useState("");
-  const [shipping, setShipping] = useState("");
-  const [photo, setPhoto] = useState("");
-
-  // Get all categories
-  const getAllCategory = async () => {
-    try {
-      const url = `${process.env.REACT_APP_API}/api/v1/category/get-category`;
-      console.log("Fetching categories from:", url);
-
-      const { data } = await axios.get(url, {
-        headers: {
-          Authorization: auth?.token, // send token
-        },
-      });
-
-      if (data?.success) {
-        setCategories(data.category);
-      } else {
-        toast.error(data.message || "Failed to load categories");
-      }
-    } catch (error) {
-      console.error("getAllCategory error:", {
-        message: error.message,
-        response: error.response?.data,
-      });
-      toast.error("Something went wrong in getting category");
-    }
-  };
+  const [formData, setFormData] = useState(initialState);
 
   useEffect(() => {
-    getAllCategory();
+    const fetchCategories = async () => {
+      const { data } = await api.get("/api/v1/category/get-category");
+      setCategories(data.category);
+    };
+
+    fetchCategories();
   }, []);
 
-  // Create product
-  const handleCreate = async (e) => {
-    e.preventDefault();
+  const handleSubmit = async (event) => {
+    event.preventDefault();
     try {
-      const url = `${process.env.REACT_APP_API}/api/v1/product/create-product`;
-      console.log("Creating product at:", url);
-
-      const productData = new FormData();
-      productData.append("name", name);
-      productData.append("description", description);
-      productData.append("price", price);
-      productData.append("quantity", quantity);
-      productData.append("photo", photo);
-      productData.append("category", category);
-      productData.append("shipping", shipping);
-
-      const { data } = await axios.post(url, productData, {
-        headers: {
-          Authorization: auth?.token, // send token
-          "Content-Type": "multipart/form-data",
-        },
+      const payload = new FormData();
+      Object.entries(formData).forEach(([key, value]) => {
+        if (value !== null) {
+          payload.append(key, value);
+        }
       });
 
-      if (data?.success) {
-        toast.success("Product Created Successfully");
-        navigate("/dashboard/admin/products");
-      } else {
-        toast.error(data?.message || "Failed to create product");
-      }
+      const { data } = await api.post("/api/v1/product/create-product", payload, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+      toast.success(data.message);
+      navigate("/dashboard/admin/products");
     } catch (error) {
-      console.error("handleCreate error:", {
-        message: error.message,
-        response: error.response?.data,
-      });
-      toast.error("Something went wrong while creating product");
+      toast.error(error.response?.data?.message || "Failed to create product");
     }
   };
 
   return (
-    <Layout title={"Dashboard - Create Product"}>
-      <div className="container-fluid m-3 p-3">
-        <div className="row">
-          <div className="col-md-3">
-            <AdminMenu />
+    <Layout title="Create product | Commercely">
+      <section className="container section-block dashboard-layout">
+        <AdminMenu />
+        <form className="dashboard-content card-panel form-panel" onSubmit={handleSubmit}>
+          <h1>Add a new product</h1>
+          <select className="input-control" value={formData.category} onChange={(event) => setFormData((prev) => ({ ...prev, category: event.target.value }))} required>
+            <option value="">Select category</option>
+            {categories.map((category) => (
+              <option key={category._id} value={category._id}>{category.name}</option>
+            ))}
+          </select>
+          <input className="input-control" placeholder="Product name" value={formData.name} onChange={(event) => setFormData((prev) => ({ ...prev, name: event.target.value }))} required />
+          <textarea className="input-control" rows="4" placeholder="Description" value={formData.description} onChange={(event) => setFormData((prev) => ({ ...prev, description: event.target.value }))} required />
+          <div className="auth-grid">
+            <input className="input-control" type="number" placeholder="Price" value={formData.price} onChange={(event) => setFormData((prev) => ({ ...prev, price: event.target.value }))} required />
+            <input className="input-control" type="number" placeholder="Quantity" value={formData.quantity} onChange={(event) => setFormData((prev) => ({ ...prev, quantity: event.target.value }))} required />
           </div>
-          <div className="col-md-9">
-            <h1>Create Product</h1>
-            <div className="m-1 w-75">
-              <Select
-                bordered={false}
-                placeholder="Select a category"
-                size="large"
-                showSearch
-                className="form-select mb-3"
-                onChange={(value) => setCategory(value)}
-              >
-                {categories?.map((c) => (
-                  <Option key={c._id} value={c._id}>
-                    {c.name}
-                  </Option>
-                ))}
-              </Select>
-
-              <div className="mb-3">
-                <label className="btn btn-outline-secondary col-md-12">
-                  {photo ? photo.name : "Upload Photo"}
-                  <input
-                    type="file"
-                    name="photo"
-                    accept="image/*"
-                    onChange={(e) => setPhoto(e.target.files[0])}
-                    hidden
-                  />
-                </label>
-              </div>
-
-              {photo && (
-                <div className="text-center mb-3">
-                  <img
-                    src={URL.createObjectURL(photo)}
-                    alt="product_photo"
-                    height="200px"
-                    className="img img-responsive"
-                  />
-                </div>
-              )}
-
-              <input
-                type="text"
-                value={name}
-                placeholder="Write a name"
-                className="form-control mb-3"
-                onChange={(e) => setName(e.target.value)}
-              />
-
-              <textarea
-                value={description}
-                placeholder="Write a description"
-                className="form-control mb-3"
-                onChange={(e) => setDescription(e.target.value)}
-              />
-
-              <input
-                type="number"
-                value={price}
-                placeholder="Write a price"
-                className="form-control mb-3"
-                onChange={(e) => setPrice(e.target.value)}
-              />
-
-              <input
-                type="number"
-                value={quantity}
-                placeholder="Write a quantity"
-                className="form-control mb-3"
-                onChange={(e) => setQuantity(e.target.value)}
-              />
-
-              <Select
-                bordered={false}
-                placeholder="Select Shipping"
-                size="large"
-                showSearch
-                className="form-select mb-3"
-                onChange={(value) => setShipping(value)}
-              >
-                <Option value="0">No</Option>
-                <Option value="1">Yes</Option>
-              </Select>
-
-              <button className="btn btn-primary" onClick={handleCreate}>
-                CREATE PRODUCT
-              </button>
-            </div>
+          <div className="auth-grid">
+            <select className="input-control" value={formData.shipping} onChange={(event) => setFormData((prev) => ({ ...prev, shipping: event.target.value }))}>
+              <option value="true">Shipping available</option>
+              <option value="false">No shipping</option>
+            </select>
+            <select className="input-control" value={formData.featured} onChange={(event) => setFormData((prev) => ({ ...prev, featured: event.target.value }))}>
+              <option value="true">Featured product</option>
+              <option value="false">Regular product</option>
+            </select>
           </div>
-        </div>
-      </div>
+          <input className="input-control" type="file" accept="image/*" onChange={(event) => setFormData((prev) => ({ ...prev, photo: event.target.files[0] }))} required />
+          <button className="primary-btn" type="submit">Create product</button>
+        </form>
+      </section>
     </Layout>
   );
 };

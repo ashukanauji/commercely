@@ -1,116 +1,61 @@
 import { useState } from "react";
-import Layout from "./../../components/Layout/Layout";
 import toast from "react-hot-toast";
-import axios from "axios";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import Layout from "../../components/Layout/Layout";
+import api from "../../utils/api";
 
 const Register = () => {
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [phone, setPhone] = useState("");
-  const [address, setAddress] = useState("");
-  const [answer, setAnswer] = useState("");
-
   const navigate = useNavigate();
+  const [formData, setFormData] = useState({
+    name: "",
+    email: "",
+    password: "",
+    phone: "",
+    address: "",
+    answer: "",
+  });
+  const [submitting, setSubmitting] = useState(false);
 
-  //handle form submission
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  const handleChange = (event) => {
+    setFormData((prev) => ({ ...prev, [event.target.name]: event.target.value }));
+  };
+
+  const handleSubmit = async (event) => {
+    event.preventDefault();
+    setSubmitting(true);
     try {
-      const res = await axios.post(
-        `${process.env.REACT_APP_API}/api/v1/auth/register`,
-        { name, email, password, phone, address, answer }
-      );
-      if (res.data.success) {
-        toast.success(res.data.message);
-        navigate("/login");
-      } else {
-        toast.error(res.data.message);
-      }
+      const { data } = await api.post("/api/v1/auth/register", formData);
+      toast.success(data.message);
+      navigate("/login");
     } catch (error) {
-      console.error("Registration error:", error);
-      toast.error("Something went wrong during registration");
+      toast.error(error.response?.data?.message || "Registration failed");
+    } finally {
+      setSubmitting(false);
     }
   };
 
   return (
-    <Layout title={"Register"}>
-      <div className="form-container">
-        <h1>Sign Up</h1>
-
-        <form onSubmit={handleSubmit}>
-          <div className="mb-3">
-            <input
-              type="text"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              className="form-control"
-              id="exampleInputName1"
-              placeholder="Enter your name"
-              required
-            />
+    <Layout title="Create your account | Commercely">
+      <section className="auth-section">
+        <form className="auth-card" onSubmit={handleSubmit}>
+          <span className="eyebrow">Create account</span>
+          <h1>Get started with Commercely</h1>
+          <div className="auth-grid">
+            <input className="input-control" name="name" placeholder="Full name" onChange={handleChange} required />
+            <input className="input-control" name="email" type="email" placeholder="Email address" onChange={handleChange} required />
+            <input className="input-control" name="password" type="password" placeholder="Password" onChange={handleChange} required />
+            <input className="input-control" name="phone" placeholder="Phone number" onChange={handleChange} required />
+            <textarea className="input-control full-span" name="address" placeholder="Shipping address" rows="3" onChange={handleChange} required />
+            <input className="input-control full-span" name="answer" placeholder="Security answer: favorite sport?" onChange={handleChange} required />
           </div>
-          <div className="mb-3">
-            <input
-              type="text"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="form-control"
-              id="exampleInputEmail1"
-              placeholder="Enter your email"
-              required
-            />
-          </div>
-          <div className="mb-3">
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="form-control"
-              id="exampleInputPassword1"
-              placeholder="Enter your password"
-              required
-            />
-          </div>
-          <div className="mb-3">
-            <input
-              type="text"
-              value={phone}
-              onChange={(e) => setPhone(e.target.value)}
-              className="form-control"
-              id="exampleInputPhone1"
-              placeholder="Enter your Phone"
-              required
-            />
-          </div>
-          <div className="mb-3">
-            <input
-              type="text"
-              value={address}
-              onChange={(e) => setAddress(e.target.value)}
-              className="form-control"
-              id="exampleInputAddress1"
-              placeholder="Enter your Address"
-              required
-            />
-          </div>
-          <div className="mb-3">
-            <input
-              type="text"
-              value={answer}
-              onChange={(e) => setAnswer(e.target.value)}
-              className="form-control"
-              id="exampleInputAddress1"
-              placeholder="What is your Favorite Sports?"
-              required
-            />
-          </div>
-          <button type="submit" className="btn btn-primary">
-            REGISTER
+          <button className="primary-btn full-width" type="submit" disabled={submitting}>
+            {submitting ? "Creating account..." : "Create account"}
           </button>
+          <p>
+            Already have an account? <Link to="/login">Sign in</Link>
+          </p>
         </form>
-      </div>
+      </section>
     </Layout>
   );
 };

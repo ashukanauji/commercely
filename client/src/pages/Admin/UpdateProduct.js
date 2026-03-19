@@ -1,238 +1,117 @@
-import React, { useState, useEffect } from "react";
-import AdminMenu from "../../components/Layout/AdminMenu";
-import Layout from "./../../components/Layout/Layout";
-import axios from "axios";
+import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
-import { Select } from "antd";
 import { useNavigate, useParams } from "react-router-dom";
-const { Option } = Select;
+import Layout from "../../components/Layout/Layout";
+import AdminMenu from "../../components/Layout/AdminMenu";
+import api from "../../utils/api";
 
 const UpdateProduct = () => {
   const navigate = useNavigate();
-  const params = useParams();
-
+  const { slug } = useParams();
   const [categories, setCategories] = useState([]);
-  const [name, setName] = useState("");
-  const [description, setDescription] = useState("");
-  const [price, setPrice] = useState("");
-  const [category, setCategory] = useState("");
-  const [quantity, setQuantity] = useState("");
-  const [shipping, setShipping] = useState("");
-  const [photo, setPhoto] = useState("");
   const [id, setId] = useState("");
+  const [formData, setFormData] = useState({
+    name: "",
+    description: "",
+    price: "",
+    category: "",
+    quantity: "",
+    shipping: "true",
+    featured: "false",
+    photo: null,
+  });
 
-  // Get Single Product
-  const getSingleProduct = async () => {
-    try {
-      const { data } = await axios.get(
-        `${process.env.REACT_APP_API}/api/v1/product/get-product/${params.slug}`
-      );
-      const product = data.product;
-      setName(product.name);
+  useEffect(() => {
+    const fetchData = async () => {
+      const [categoryRes, productRes] = await Promise.all([
+        api.get("/api/v1/category/get-category"),
+        api.get(`/api/v1/product/get-product/${slug}`),
+      ]);
+
+      const product = productRes.data.product;
+      setCategories(categoryRes.data.category);
       setId(product._id);
-      setDescription(product.description);
-      setPrice(product.price);
-      setQuantity(product.quantity);
-      setShipping(product.shipping ? "1" : "0");
-      setCategory(product.category._id);
-    } catch (error) {
-      console.log(error);
-      toast.error("Failed to fetch product details");
-    }
-  };
+      setFormData({
+        name: product.name,
+        description: product.description,
+        price: product.price,
+        category: product.category?._id,
+        quantity: product.quantity,
+        shipping: String(product.shipping),
+        featured: String(product.featured),
+        photo: null,
+      });
+    };
 
-  useEffect(() => {
-    getSingleProduct();
-  }, []);
+    fetchData();
+  }, [slug]);
 
-  // Get All Categories
-  const getAllCategory = async () => {
+  const handleUpdate = async (event) => {
+    event.preventDefault();
     try {
-      const url = `${process.env.REACT_APP_API}/api/v1/category/get-category`;
-      const { data } = await axios.get(url);
-      if (data?.success) {
-        setCategories(data.category);
-      } else {
-        toast.error(data.message || "Failed to load categories");
-      }
-    } catch (error) {
-      console.error("getAllCategory error:", error);
-      toast.error("Something went wrong in getting category");
-    }
-  };
-
-  useEffect(() => {
-    getAllCategory();
-  }, []);
-
-  // Update Product
-  const handleUpdate = async (e) => {
-    e.preventDefault();
-    try {
-      const productData = new FormData();
-      productData.append("name", name);
-      productData.append("description", description);
-      productData.append("price", price);
-      productData.append("quantity", quantity);
-      productData.append("category", category);
-      productData.append("shipping", shipping);
-      photo && productData.append("photo", photo);
-
-      const { data } = await axios.put(
-        `${process.env.REACT_APP_API}/api/v1/product/update-product/${id}`,
-        productData,
-        {
-          headers: {
-            Authorization: localStorage.getItem("token"),
-          },
+      const payload = new FormData();
+      Object.entries(formData).forEach(([key, value]) => {
+        if (value !== null) {
+          payload.append(key, value);
         }
-      );
+      });
 
-      if (data?.success) {
-        toast.success("Product Updated Successfully");
-        navigate("/dashboard/admin/products");
-      } else {
-        toast.error(data?.message);
-      }
-    } catch (error) {
-      console.log(error);
-      toast.error("Something went wrong");
-    }
-  };
-
-  // Delete Product (with Admin Auth)
-  const handleDelete = async () => {
-    try {
-      let answer = window.prompt(
-        "Are you sure you want to delete this product?"
-      );
-      if (!answer) return;
-      await axios.delete(
-        `${process.env.REACT_APP_API}/api/v1/product/delete-product/${id}`,
-        {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
-          },
-        }
-      );
-      toast.success("Product Deleted Successfully");
+      const { data } = await api.put(`/api/v1/product/update-product/${id}`, payload, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+      toast.success(data.message);
       navigate("/dashboard/admin/products");
     } catch (error) {
-      console.log(error);
-      toast.error("Not Authorized or Something went wrong");
+      toast.error(error.response?.data?.message || "Failed to update product");
+    }
+  };
+
+  const handleDelete = async () => {
+    try {
+      const { data } = await api.delete(`/api/v1/product/delete-product/${id}`);
+      toast.success(data.message);
+      navigate("/dashboard/admin/products");
+    } catch (error) {
+      toast.error(error.response?.data?.message || "Failed to delete product");
     }
   };
 
   return (
-    <Layout title={"Dashboard - Update Product"}>
-      <div className="container-fluid m-3 p-3">
-        <div className="row">
-          <div className="col-md-3">
-            <AdminMenu />
+    <Layout title="Update product | Commercely">
+      <section className="container section-block dashboard-layout">
+        <AdminMenu />
+        <form className="dashboard-content card-panel form-panel" onSubmit={handleUpdate}>
+          <h1>Update product</h1>
+          <select className="input-control" value={formData.category} onChange={(event) => setFormData((prev) => ({ ...prev, category: event.target.value }))} required>
+            <option value="">Select category</option>
+            {categories.map((category) => (
+              <option key={category._id} value={category._id}>{category.name}</option>
+            ))}
+          </select>
+          <input className="input-control" value={formData.name} onChange={(event) => setFormData((prev) => ({ ...prev, name: event.target.value }))} required />
+          <textarea className="input-control" rows="4" value={formData.description} onChange={(event) => setFormData((prev) => ({ ...prev, description: event.target.value }))} required />
+          <div className="auth-grid">
+            <input className="input-control" type="number" value={formData.price} onChange={(event) => setFormData((prev) => ({ ...prev, price: event.target.value }))} required />
+            <input className="input-control" type="number" value={formData.quantity} onChange={(event) => setFormData((prev) => ({ ...prev, quantity: event.target.value }))} required />
           </div>
-          <div className="col-md-9">
-            <h1>Update Product</h1>
-            <div className="m-1 w-75">
-              <Select
-                bordered={false}
-                placeholder="Select a category"
-                size="large"
-                showSearch
-                className="form-select mb-3"
-                onChange={(value) => setCategory(value)}
-                value={category}
-              >
-                {categories?.map((c) => (
-                  <Option key={c._id} value={c._id}>
-                    {c.name}
-                  </Option>
-                ))}
-              </Select>
-
-              <div className="mb-3">
-                <label className="btn btn-outline-secondary col-md-12">
-                  {photo ? photo.name : "Upload Photo"}
-                  <input
-                    type="file"
-                    name="photo"
-                    accept="image/*"
-                    onChange={(e) => setPhoto(e.target.files[0])}
-                    hidden
-                  />
-                </label>
-              </div>
-
-              <div className="mb-3 text-center">
-                {photo ? (
-                  <img
-                    src={URL.createObjectURL(photo)}
-                    alt="product_photo"
-                    height={"200px"}
-                    className="img img-responsive"
-                  />
-                ) : (
-                  <img
-                    src={`${process.env.REACT_APP_API}/api/v1/product/product-photo/${id}`}
-                    alt="product_photo"
-                    height={"200px"}
-                    className="img img-responsive"
-                  />
-                )}
-              </div>
-
-              <input
-                type="text"
-                value={name}
-                placeholder="Product Name"
-                className="form-control mb-3"
-                onChange={(e) => setName(e.target.value)}
-              />
-
-              <textarea
-                value={description}
-                placeholder="Product Description"
-                className="form-control mb-3"
-                onChange={(e) => setDescription(e.target.value)}
-              />
-
-              <input
-                type="number"
-                value={price}
-                placeholder="Price"
-                className="form-control mb-3"
-                onChange={(e) => setPrice(e.target.value)}
-              />
-
-              <input
-                type="number"
-                value={quantity}
-                placeholder="Quantity"
-                className="form-control mb-3"
-                onChange={(e) => setQuantity(e.target.value)}
-              />
-
-              <Select
-                bordered={false}
-                placeholder="Select Shipping"
-                size="large"
-                className="form-select mb-3"
-                onChange={(value) => setShipping(value)}
-                value={shipping}
-              >
-                <Option value="0">No</Option>
-                <Option value="1">Yes</Option>
-              </Select>
-
-              <button className="btn btn-primary" onClick={handleUpdate}>
-                UPDATE PRODUCT
-              </button>
-              <button className="btn btn-danger ms-2" onClick={handleDelete}>
-                DELETE PRODUCT
-              </button>
-            </div>
+          <div className="auth-grid">
+            <select className="input-control" value={formData.shipping} onChange={(event) => setFormData((prev) => ({ ...prev, shipping: event.target.value }))}>
+              <option value="true">Shipping available</option>
+              <option value="false">No shipping</option>
+            </select>
+            <select className="input-control" value={formData.featured} onChange={(event) => setFormData((prev) => ({ ...prev, featured: event.target.value }))}>
+              <option value="true">Featured product</option>
+              <option value="false">Regular product</option>
+            </select>
           </div>
-        </div>
-      </div>
+          <img src={formData.photo ? URL.createObjectURL(formData.photo) : `${process.env.REACT_APP_API}/api/v1/product/product-photo/${id}`} alt={formData.name} className="details-image preview-image" />
+          <input className="input-control" type="file" accept="image/*" onChange={(event) => setFormData((prev) => ({ ...prev, photo: event.target.files[0] }))} />
+          <div className="table-actions">
+            <button className="primary-btn" type="submit">Save updates</button>
+            <button className="danger-btn" type="button" onClick={handleDelete}>Delete product</button>
+          </div>
+        </form>
+      </section>
     </Layout>
   );
 };

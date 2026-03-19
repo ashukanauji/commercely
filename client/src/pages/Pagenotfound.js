@@ -1,17 +1,14 @@
-import React from "react";
 import { Link } from "react-router-dom";
-import Layout from "./../components/Layout/Layout";
+import Layout from "../components/Layout/Layout";
 
 const Pagenotfound = () => {
   return (
-    <Layout title={"Go Back - Page Not Found"}>
-      <div className="pnf">
-        <h1 className="pnf-title">404</h1>
-        <h2 className="pnf-heading">Oops ! Page Not Found</h2>
-        <Link to="/" className="pnf-btn">
-          Go Back
-        </Link>
-      </div>
+    <Layout title="Page not found | Commercely">
+      <section className="center-state page-shell">
+        <h1>404</h1>
+        <p>The page you are looking for does not exist.</p>
+        <Link to="/" className="primary-btn">Back to home</Link>
+      </section>
     </Layout>
   );
 };

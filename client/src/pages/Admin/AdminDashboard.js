@@ -1,26 +1,42 @@
-import React from "react";
-import Layout from "./../../components/Layout/Layout";
-import AdminMenu from "./../../components/Layout/AdminMenu";
+import { useEffect, useState } from "react";
+import Layout from "../../components/Layout/Layout";
+import AdminMenu from "../../components/Layout/AdminMenu";
 import { useAuth } from "../../context/auth";
+import { formatCurrency } from "../../utils/format";
+import api from "../../utils/api";
 
 const AdminDashboard = () => {
-  const [auth] = useAuth();
+  const { auth } = useAuth();
+  const [summary, setSummary] = useState({ users: 0, products: 0, orders: 0, revenue: 0 });
+
+  useEffect(() => {
+    const fetchSummary = async () => {
+      const { data } = await api.get("/api/v1/order/admin/summary");
+      setSummary(data.summary);
+    };
+
+    fetchSummary();
+  }, []);
+
   return (
-    <Layout>
-      <div className="container-fluid m-3 p-3">
-        <div className="row">
-          <div className="col-md-3">
-            <AdminMenu />
-          </div>
-          <div className="col-md-9">
-            <div className="card w-75 p-3">
-              <h3>Admin Name : {auth?.user?.name}</h3>
-              <h4>Email : {auth?.user?.email}</h4>
-              <h4>Contact : {auth?.user?.phone}</h4>
+    <Layout title="Admin dashboard | Commercely">
+      <section className="container section-block dashboard-layout">
+        <AdminMenu />
+        <div className="dashboard-content">
+          <div className="section-heading">
+            <div>
+              <span className="eyebrow">Admin overview</span>
+              <h1>Welcome back, {auth?.user?.name}</h1>
             </div>
           </div>
+          <div className="stats-grid">
+            <div className="mini-card"><strong>{summary.users}</strong><span>Registered users</span></div>
+            <div className="mini-card"><strong>{summary.products}</strong><span>Products in catalog</span></div>
+            <div className="mini-card"><strong>{summary.orders}</strong><span>Total orders</span></div>
+            <div className="mini-card"><strong>{formatCurrency(summary.revenue)}</strong><span>Total revenue</span></div>
+          </div>
         </div>
-      </div>
+      </section>
     </Layout>
   );
 };
